@@ -67,9 +67,11 @@ namespace LanguageParser
                     }
                     // The result of each spreadsheet is in result.Tables
 
-                    foreach (var key in keys)
+                    for (var index = 0; index < keys.Count; index++)
                     {
-                        foreach (var p in key.GetType().GetProperties().Where(p => !p.GetGetMethod().GetParameters().Any()))
+                        var key = keys[index];
+                        foreach (var p in key.GetType().GetProperties()
+                            .Where(p => !p.GetGetMethod().GetParameters().Any()))
                         {
                             var fileNameAttribute = p.GetCustomAttributes(typeof(DisplayNameAttribute), true)
                                 .Cast<DisplayNameAttribute>().FirstOrDefault();
@@ -85,17 +87,30 @@ namespace LanguageParser
                                     json = r.ReadToEnd();
                                 }
 
-                                var splitedJson = json.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
-                                var lineWithKey = splitedJson.First(x => x.Contains("\"" + key.Name + "\":"));
+                                var splitedJson = json.Split(new[] {Environment.NewLine}, StringSplitOptions.None);
+                                var lineWithKey = splitedJson.FirstOrDefault(x => x.Contains("\"" + key.Name + "\":"));
+                                //var numberOfLineWithClosedBr = splitedJson.
+                                string newJson;
+                                if (lineWithKey != null)
+                                {
+                                    var value = lineWithKey.Split(':')[1];
 
-                                var value = lineWithKey.Split(':')[1];
+                                    var comma = lineWithKey.Contains(',') ? "," : "";
 
-                                var comma = lineWithKey.Contains(',') ? "," :"";
+                                    var changedLineWithKey =
+                                        lineWithKey.Replace(value, $" \"{p.GetValue(key, null)}\"{comma}");
 
-                                var changedLineWithKey = lineWithKey.Replace(value, $" \"{p.GetValue(key, null)}\"{comma}");
 
+                                    newJson = json.Replace(lineWithKey, changedLineWithKey);
+                                }
+                                else
+                                {
+                                    var lastLineWithValue = splitedJson[splitedJson.Length - 3];
+                                    json = json.Replace(lastLineWithValue, lastLineWithValue + ",");
 
-                                var newJson = json.Replace(lineWithKey, changedLineWithKey);
+                                    newJson = json.Replace("}", $"  \"{key.Name}\": \"{p.GetValue(key, null)}\"" + Environment.NewLine + "}");
+                                }
+
                                 File.WriteAllText(path, newJson, Encoding.UTF8);
                             }
                         }
