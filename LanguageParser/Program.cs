@@ -108,7 +108,9 @@ namespace LanguageParser
                                     var lastLineWithValue = splitedJson[splitedJson.Length - 3];
                                     json = json.Replace(lastLineWithValue, lastLineWithValue + ",");
 
-                                    newJson = json.Replace("}", $"  \"{key.Name}\": \"{p.GetValue(key, null)}\"" + Environment.NewLine + "}");
+                                    var newValueString = $"  \"{key.Name}\": \"{p.GetValue(key, null)}\"" + Environment.NewLine + "}";
+                                    //newJson = json.Replace("}", newValueString);
+                                    newJson = ReplaceLastOccurrence(json, "}", newValueString);
                                 }
 
                                 File.WriteAllText(path, newJson, Encoding.UTF8);
@@ -119,10 +121,22 @@ namespace LanguageParser
 
 
             }
-
+            Console.WriteLine("DONE");
             Console.Read();
         }
+        public static string ReplaceLastOccurrence(string Source, string Find, string Replace)
+        {
+            int place = Source.LastIndexOf(Find);
+
+            if (place == -1)
+                return Source;
+
+            string result = Source.Remove(place, Find.Length).Insert(place, Replace);
+            return result;
+        }
     }
+
+
 
     public class KeyTranslateModel
     {
